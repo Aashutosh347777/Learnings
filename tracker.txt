@@ -1,2 +1,8 @@
 2026 May 14 
 -> Initialized the repo
+-> Tried creating a non linear functions something like (ax^5 + bx^4 + cx^3 + dx^2 + ex + f\) 
+
+2026 May 15
+-Created the data in the required formate
+-Studied about the range of values being used to generate the data -> like changing the range of x from -100-100 to -5-5
+-Also the current data config, may need to change to one consistent non linear function.
