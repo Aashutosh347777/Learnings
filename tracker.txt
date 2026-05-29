@@ -6,3 +6,6 @@
 -Created the data in the required formate
 -Studied about the range of values being used to generate the data -> like changing the range of x from -100-100 to -5-5
 -Also the current data config, may need to change to one consistent non linear function.
+
+2026 May 28
+-Feature split caluclation, try histogram based binding for candidate threshold caluclation
