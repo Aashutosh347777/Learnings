@@ -28,15 +28,57 @@ def format_for_calcu(tgc:np.array):
     
     return proba_cal
 
-def cal_uncert():
-    proba_cal = format_for_calcu()
-    uncertainity = np.sum(np.array(proba_cal) * np.log(proba_cal))
+def cal_uncert(tgc:np.array):
+    proba_cal = format_for_calcu(tgc)
+    uncertainity = -(np.sum(np.array(proba_cal) * np.log(proba_cal)))
     # feature uncertainity calculation
-    return proba_cal, f"uncertainity is {uncertainity}"
+    return uncertainity
 
-def cal_log_of_proba():
-    proba_cal=format_for_calcu()
+# def cal_log_of_proba(arr_obj:np.array, targ:np.array):
+#     freq_count = histogram_binding(arr_obj,targ)
+
+def cumulative_linear_scan(arr_obj:np.array, targ:np.array,sys_entropy:float):
+    min, max = (np.min(arr_obj), np.max(arr_obj))
+    k = int(np.log(arr_obj.size) + 1)
+    step = (max - min)/k
+    b = []
+    freq_count = {}
+    up_e = 0
+    min_temp = 0
+    # total_pos_arr = 0
+    for i in range(k):
+        # if i == 0:
+        up_e = min+step
+        b.append((min, up_e)) 
+        count = np.sum(np.where((arr_obj>=min)&(arr_obj<up_e),1,0))
+        indexes = np.where((arr_obj>=min)&(arr_obj<up_e))[0]
+        total_pos = np.unique(targ[indexes],return_counts=True)[1][1]
+        # total__pos_arr += total_pos
+        freq_count[(min,up_e)] = (count,total_pos)
+        min = up_e
+
+    total_pos_arr = np.unique(targ,return_counts=True)[1][1]
+    total_rows = targ.shape[0]
+    #iterating through the dict values
+    left_count = list(freq_count.items())[0][1][0]
+    left_pos = list(freq_count.items())[0][1][1]
+    best_ig = 0
+    for key,val in dict(list(freq_count.items())[1:-1]).items():
+        left_count += val[0]
+        left_pos += val[1]
+        right_count = total_rows - left_count
+        right_pos = total_pos_arr - left_pos
+
+        p_left,p_right = left_pos/left_count, right_pos/right_count
+        entropy = -(p_left* np.log(p_left) + p_right * np.log(p_right))
+        print("\n sys_entropy",sys_entropy," curr_entropy",entropy)
+        ig = sys_entropy - entropy
+
+        if ig > best_ig: best_ig = ig
+
+    return (ig,key)
     
+
 def finding_best_splits(ftc:np.array):
     num_rows, num_cols = ftc.shape
     for i in range(num_clos):
@@ -58,21 +100,23 @@ def finding_best_splits(ftc:np.array):
     return b
 
 
-def histogram_binding(a:np.array,c:np.array):
-    min, max = (np.min(a), np.max(a))
-    k = int(np.log(a.size) + 1)
+def histogram_binding(arr_obj:np.array,targ:np.array):
+    min, max = (np.min(arr_obj), np.max(arr_obj))
+    k = int(np.log(arr_obj.size) + 1)
     step = (max - min)/k
     b = []
     freq_count = {}
     up_e = 0
     min_temp = 0
+    # total_pos_arr = 0
     for i in range(k):
         # if i == 0:
         up_e = min+step
         b.append((min, up_e)) 
-        count = np.sum(np.where((a>=min)&(a<up_e),1,0))
-        indexes = np.where((a>=min)&(a<up_e))[0]
-        total_pos = np.unique(c[indexes],return_counts=True)[1][1]
+        count = np.sum(np.where((arr_obj>=min)&(arr_obj<up_e),1,0))
+        indexes = np.where((arr_obj>=min)&(arr_obj<up_e))[0]
+        total_pos = np.unique(targ[indexes],return_counts=True)[1][1]
+        # total__pos_arr += total_pos
         freq_count[(min,up_e)] = (count,total_pos)
         min = up_e
 
@@ -96,5 +140,5 @@ if __name__ == "__main__":
     print(y_test_arr)
     # print(f"{test_arr} \n min and max {(np.max(test_arr),np.min(test_arr))}")
     # out = mimic_decisin_tree(test_arr)
-    out = histogram_binding(test_arr,y_test_arr)
+    out = cumulative_linear_scan(test_arr,y_test_arr,cal_uncert(y_test_arr))
     print(out)

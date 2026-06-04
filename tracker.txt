@@ -9,3 +9,9 @@
 
 2026 May 28
 -Feature split caluclation, try histogram based binding for candidate threshold caluclation
+
+2026 Jun 1
+-Information gain for each bin, comparison and finding out the best, splitting bin, and either its mean or upperbound.
+
+2026 jun 4
+-Pushing ill broken code.
