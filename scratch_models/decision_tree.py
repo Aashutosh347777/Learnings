@@ -30,13 +30,17 @@ def format_for_calcu(tgc:np.array):
 
 def cal_uncert(tgc:np.array):
     proba_cal = format_for_calcu(tgc)
-    uncertainity = -(np.sum(np.array(proba_cal) * np.log(proba_cal)))
+    uncertainity = -(np.sum(np.array(proba_cal) * np.log2(proba_cal)))
     # feature uncertainity calculation
     return uncertainity
 
 # def cal_log_of_proba(arr_obj:np.array, targ:np.array):
 #     freq_count = histogram_binding(arr_obj,targ)
 
+def _cal_entropy():
+    pass
+
+    
 def cumulative_linear_scan(arr_obj:np.array, targ:np.array,sys_entropy:float):
     min, max = (np.min(arr_obj), np.max(arr_obj))
     k = int(np.log(arr_obj.size) + 1)
@@ -70,7 +74,7 @@ def cumulative_linear_scan(arr_obj:np.array, targ:np.array,sys_entropy:float):
         right_pos = total_pos_arr - left_pos
 
         p_left,p_right = left_pos/left_count, right_pos/right_count
-        entropy = -(p_left* np.log(p_left) + p_right * np.log(p_right))
+        entropy = -((left_count/total_rows)*p_left* np.log(p_left) + (right_count/total_rows)*p_right * np.log(p_right))
         print("\n sys_entropy",sys_entropy," curr_entropy",entropy)
         ig = sys_entropy - entropy
 
@@ -142,3 +146,5 @@ if __name__ == "__main__":
     # out = mimic_decisin_tree(test_arr)
     out = cumulative_linear_scan(test_arr,y_test_arr,cal_uncert(y_test_arr))
     print(out)
+
+# wrie the function to do things dynamically, may be it will be better if you make a new file
