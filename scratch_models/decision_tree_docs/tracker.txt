@@ -15,3 +15,6 @@
 
 2026 jun 4
 -Pushing ill broken code.
+
+2026 Jun 22
+-Refactoring attempt, latex documentation incomplete, multi class computation attempt.  

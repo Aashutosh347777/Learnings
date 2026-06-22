@@ -1,1 +1,7 @@
 py_env/
+*.aux
+*.fdb_latexmk
+*.log
+*.synctex.gz
+*.fls
+

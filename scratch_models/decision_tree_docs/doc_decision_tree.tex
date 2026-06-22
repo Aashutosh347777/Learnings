@@ -1,0 +1,86 @@
+\documentclass[12pt,letterpaper]{article}
+
+% packages
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+% \usepackage[utf-8]{inputenc}
+
+% Document
+\title{Decision Tree Classification Flow}
+\author{Aashutosh Bista}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Step 1 System Entropy}
+The first step for any CART is to find the entropy of the target columns, this value is called system entropy.
+
+\subsection{Calculations and logic assesment.}
+First Single out the target columns, find out the number of classes and value counts for each class.
+\begin{align*}
+    a \quad &\longrightarrow \quad 200 \\
+    b \quad &\longrightarrow \quad 211 \\
+    c \quad &\longrightarrow \quad 192 \\
+    \vdots \quad &\longrightarrow \quad \vdots \\
+    n \quad &\longrightarrow \quad x
+\end{align*} 
+
+Find the probabilities for every class, say for class $a$:
+\begin{align*}
+    P(a) &=\frac{200}{\text{ Total Rows Number}}
+\end{align*} 
+
+Compute the system entropy using the formula: 
+\begin{align*}
+    H(s) &= -\sum_{i=1}^{n} P(i) \log_2(P(i))
+\end{align*}
+
+\section{Step2: Finding the Splitting criteria}
+A loop is ran where every feature column is targetted and its Information Gain(I.G) is calculated, the column with higher Information gain in order are selected as priority splitting criteria.
+
+The approach for findng I.G differs based on the type of the data the targetted feature column holds. The approach differs by evaluating the type of data on hand, if the column consists of values that can be exacted/repeated multiple times(similar to discrete), or no consistent repition(continous in nature).
+
+\subsection{Discrete nature of Data}
+These columns of data can be one hot encoded. Similar to the target column these feature columns are also supposed to have unique elements and counts associated to them. Then we perform \textbf{Binary Subset Split}. In this split as the name suggests, only two category is conisdered. Say one of the Category is $A$ then the other category becomes $~A$ or $U-A$. Then we calculate the \textbf{Weighted Entropy}. This is repeated for every Category presented in the feature column.
+
+\subsubsection{I.G for a Discrete nature column.}
+Let's assume a feature column with three distinct features in it (0,1,2) and target column with target vairables as (A,B,C). First we compute, the metrics such as counts of mapping such as counts of a feature varaible and target variable.
+
+\begin{align*}
+    0_A \quad &\longrightarrow \quad 344 \\
+    1_A \quad &\longrightarrow \quad 221 \\
+    2_A \quad &\longrightarrow \quad 343 \\
+    0_B \quad &\longrightarrow \quad 222 \\
+    \vdots \quad &\longrightarrow \quad \vdots \\
+    2_C \quad &\longrightarrow \quad 212
+\end{align*}
+Now, lets compute the binary split of $0$ and $0^{\complement}$.
+
+we have $0$ and $0^{\complement}$, our goal is to find the Weighted entropy of a binary split, so the formual becomes.
+\begin{align*}
+    H_w(X) &= \sum_{i=1}^{n} P(0_i) H(0_i) + P(0^{\complement}_i)H(0^{\complement}_i) 
+\end{align*}
+
+The probabilities are used as weights and the notations are tried to be summarized below:
+\begin{align*}
+    \text{weight 1 (Probability of 0 in feat col)} = P(0_i) \\
+    \text{ weight 2 (Probability of $0^{\complement}$ in feat col)} = P(0^{\complement}_i) \\
+    \text{Entropy of 0th component of binary split} = H(0_i) \\
+    \text{Entropy of 1th component of binary splilt} = H(0^{\complement}_i) 
+\end{align*}
+
+Entropy of the binary splits:
+\begin{align*}
+    H(0_i) &= P(0_A) \log2(P(0_A))+P(0_B) \log2(P(0_B))+P(0_C) \log2(P(0_C)) \\
+    H(0^{\complement}_i) &= P(0^{\complement}_A) \log2(P(0^{\complement}_A))+P(0^{\complement}_B) \log2(P(0^{\complement}_B))+P(0^{\complement}_C) \log2(P(0^{\complement}_C))
+\end{align*}
+We repeate this for the set ($1$ ,$1^{\complement}$) and ($2$, $2^{\complement}$), and find the I.G by subtracting the weighted entropy for each set.
+
+
+\subsection{Continuos nature of Data}
+To find the splitting criteria, we divide the data in bins and try singling out one of the bin, which is able to point out the maximum information for that column. This apporach is also called \textbf{Histogram Binding}.
+
+\end{document}

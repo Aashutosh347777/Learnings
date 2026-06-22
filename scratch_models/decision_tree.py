@@ -37,8 +37,19 @@ def cal_uncert(tgc:np.array):
 # def cal_log_of_proba(arr_obj:np.array, targ:np.array):
 #     freq_count = histogram_binding(arr_obj,targ)
 
-def _cal_entropy():
-    pass
+def _cal_entropy(probs:np.array):
+    return -sum(list(map(lambda x: x*np.log2(x),probs)))
+
+def _cal_probs(arr_obj:np.array)->np.array:
+    total_rows = arr_obj.shape[0]
+    counts = np.unique(arr_obj,return_counts=True)
+    freq_count = counts[1]
+
+    probs = freq_count/np.sum(freq_count)
+    return probs
+
+def _cal_weighted_entropy(probs:np.array, entropies:np.array):
+    return sum(probs * entropies)
 
     
 def cumulative_linear_scan(arr_obj:np.array, targ:np.array,sys_entropy:float):
@@ -56,7 +67,11 @@ def cumulative_linear_scan(arr_obj:np.array, targ:np.array,sys_entropy:float):
         b.append((min, up_e)) 
         count = np.sum(np.where((arr_obj>=min)&(arr_obj<up_e),1,0))
         indexes = np.where((arr_obj>=min)&(arr_obj<up_e))[0]
-        total_pos = np.unique(targ[indexes],return_counts=True)[1][1]
+        unique_ele = np.unique(targ[indexes],return_counts=True)
+        if unique_ele[0].size > 1:
+            total_pos = unique_ele[1][1]
+        else:
+            total_pos = 0
         # total__pos_arr += total_pos
         freq_count[(min,up_e)] = (count,total_pos)
         min = up_e
@@ -137,14 +152,121 @@ def histogram_binding(arr_obj:np.array,targ:np.array):
         
     return freq_count
 
+def best_split_categorical(col_obj:np.array,targ:np.array) -> tuple:
+    sys_entro = _cal_entropy(_cal_probs(targ))
+    print(sys_entro )
+    #assume that we know the unique elements in target column and list of uniq values
+    targ_list_val = [0,1,2]
+    targ_uniq_count = 3
+    probs = _cal_probs(col_obj)
+    sum_probs = sum(probs)
+    probs_per_obj = []
+    
+    total_rows=col_obj.shape[0]
+    uniq_val_counts=np.unique(col_obj,return_counts=True)
+    uniq_ele, freq_uniq_ele = uniq_val_counts
+    count_uniq_ele = uniq_val_counts[1].size
+    highest_ig_split,highest_ig = (),0
+    for i in range(count_uniq_ele):
+        probs_per_obj = [probs[i],sum_probs-probs[i]]
+        cur_ele = uniq_ele[i]
+        #binary masking
+        mask1 = col_obj==cur_ele
+        # indexes,indexes_other_ele=np.where(col_obj==cur_ele)[0],np.where(col_obj!=cur_ele)[0]
+        indexes,indexes_other_ele=col_obj[mask1],col_obj[~mask1]
+        # assume binary calssification
+        correspondent_vals,correspondent_vals_other_ele=targ[mask1],targ[~mask1]
+        total_curr_ele_count=correspondent_vals.size
+        ## binary masking
+        total_other_ele_count=total_rows-total_curr_ele_count
+
+        print("---For the curr_element---\n")
+        print(np.column_stack([indexes,correspondent_vals]))
+
+        print("\n---For the curr_element---\n")
+        print(np.column_stack([indexes_other_ele,correspondent_vals_other_ele]))
+
+        # pos_val_count,pos_val_count_other_ele=sum(correspondent_vals==1),sum(correspondent_vals_other_ele==1)
+
+        # num_rows_ele,num_rows_other_than_ele = correspondent_vals.shape[0],correspondent_vals_other_ele.shape[0]
+
+        # cur_ele_counts,other_ele_counts = np.unique(correspondent_vals,return_counts=True), np.unique(correspondent_vals_other_ele,return_counts=True)
+
+        # # for cur ele
+        # proba_curr_ele_in = cur_ele_counts[1]/num_rows_ele
+        # proba_other_ele_in = other_ele_counts[1]/num_rows_other_than_ele
+
+        proba_curr_ele_in,proba_other_ele_in = _cal_probs(correspondent_vals),_cal_probs(correspondent_vals_other_ele)
+
+        entroyp_curr_ele_in, entropy_other_ele_in = _cal_entropy(proba_curr_ele_in), _cal_entropy(proba_other_ele_in)
+
+        # store_probs= []
+        # for vals in targ_list_val:
+        #     if correspondent_vals==vals:
+        #         proba_ith_uniq_ele = sum(correspondent_vals==vals)/total_curr_ele_count
+            
+        #     if correspondent_vals_other_ele==vals:
+        #         proba_ith_remain_ele = sum(correspondent_vals_other_ele==vals)/total_curr_ele_count
+
+        #     store_probs.append((proba_ith_uniq_ele,proba_ith_remain_ele))
+
+
+        # proba_curr_ele,proba_remain_ele=pos_val_count/total_curr_ele_count,pos_val_count_other_ele/total_other_ele_count
+        # for 
+        # entroyp_curr_ele = _cal_entropy((proba_curr_ele,1-proba_curr_ele))
+        # entropy_remain_ele = _cal_entropy((proba_remain_ele,1-proba_remain_ele))
+        
+        entropies = np.array([entroyp_curr_ele_in,entropy_other_ele_in])
+        curr_ig = sys_entro-_cal_weighted_entropy(probs_per_obj,entropies)
+        print(f"IG {curr_ig}")
+        if curr_ig > highest_ig: 
+            highest_ig = curr_ig            
+            highest_ig_split =(uniq_ele[i],highest_ig)
+
+    return highest_ig_split
+
+def find_next_split_col(arr_obj:np.array)-> dict:
+    feat_cols,targ_col = arr_obj[:,:-1],arr_obj[:,-1]
+    total_rows,total_cols = feat_cols.shape
+
+    sys_entro = _cal_entropy(_cal_probs(targ_col))
+    criteria = {}
+
+    for i in range(total_cols):
+        col1 = feat_cols[:,i]
+        if col1.dtype=='<U21':
+            pair = best_split_categorical(col1,targ_col)
+            print(pair)
+            criteria[str(pair[0])] =pair[1]
+        else:
+            cumulative_linear_scan(col1,targ_col,sys_entro)
+            criteria[str(pair[0])] =pair[1]
+    
+    return criteria
+
 
 if __name__ == "__main__":
-    test_arr = np.random.randint(10,59,30)
-    y_test_arr = np.random.choice([0,1],size=30)
-    print(y_test_arr)
-    # print(f"{test_arr} \n min and max {(np.max(test_arr),np.min(test_arr))}")
-    # out = mimic_decisin_tree(test_arr)
-    out = cumulative_linear_scan(test_arr,y_test_arr,cal_uncert(y_test_arr))
-    print(out)
+    # test_arr = np.random.randint(10,59,30)
+    # y_test_arr = np.random.choice([0,1],size=30)
+    # test_arr_categoricl = np.random.choice(['A','B','C'],size=30)
+    # print(y_test_arr)
+    # print(test_arr_categoricl)
+    # # print(f"{test_arr} \n min and max {(np.max(test_arr),np.min(test_arr))}")
+    # # out = mimic_decisin_tree(test_arr)
+    # # out = cumulative_linear_scan(test_arr,y_test_arr,cal_uncert(y_test_arr))
+    # # print(out)
+
+    # print(best_split_categorical(test_arr_categoricl,y_test_arr))
+
+    categorical_options = [['A','B','C'],['D','E','F']]
+    cat_cols = np.column_stack([np.random.choice(opt,size=30) for opt in categorical_options])
+    targ_col = np.random.choice([0,1,2],size=30)
+    num_cols = np.column_stack([np.random.randint(10,50,30),np.random.randint(20,40,30)])
+    data = np.column_stack([cat_cols,num_cols,targ_col])
+    print(data)
+
+    # print(find_next_split_col(data))
+    print(best_split_categorical(cat_cols[:,0],targ_col))
+
 
 # wrie the function to do things dynamically, may be it will be better if you make a new file
