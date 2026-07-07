@@ -59,43 +59,110 @@ def cumulative_linear_scan(arr_obj:np.array, targ:np.array,sys_entropy:float):
     b = []
     freq_count = {}
     up_e = 0
-    min_temp = 0
     # total_pos_arr = 0
     for i in range(k):
         # if i == 0:
         up_e = min+step
         b.append((min, up_e)) 
-        count = np.sum(np.where((arr_obj>=min)&(arr_obj<up_e),1,0))
-        indexes = np.where((arr_obj>=min)&(arr_obj<up_e))[0]
-        unique_ele = np.unique(targ[indexes],return_counts=True)
-        if unique_ele[0].size > 1:
-            total_pos = unique_ele[1][1]
-        else:
-            total_pos = 0
-        # total__pos_arr += total_pos
-        freq_count[(min,up_e)] = (count,total_pos)
+        mask = (arr_obj>=min) & (arr_obj<up_e)
+        # count = np.sum(np.where((arr_obj>=min)&(arr_obj<up_e),1,0))
+        # indexes = np.where((arr_obj>=min)&(arr_obj<up_e))[0]
+        curr_elemenst = arr_obj[mask]
+        unique_ele,count_ele = np.unique(targ[mask],return_counts=True)
+        
+        # if unique_ele[0].size > 1:
+        #     total_pos = unique_ele[1][1]
+        # else:
+        #     total_pos = 0
+        # # total__pos_arr += total_pos
+        freq_count[(min,up_e)] = (len(unique_ele),count_ele)
         min = up_e
 
-    total_pos_arr = np.unique(targ,return_counts=True)[1][1]
-    total_rows = targ.shape[0]
-    #iterating through the dict values
-    left_count = list(freq_count.items())[0][1][0]
-    left_pos = list(freq_count.items())[0][1][1]
-    best_ig = 0
+    ig_and_bins, best_ig = [], 0
+    # left_bin_entro
+    left_bin_counts = list(freq_count.items())[0][1][1]
+    right_bin_counts = list(freq_count.items())[0][1][1]
+    print("Pringint left bins---\n")
+    print(left_bin_counts)
+
+
     for key,val in dict(list(freq_count.items())[1:-1]).items():
-        left_count += val[0]
-        left_pos += val[1]
-        right_count = total_rows - left_count
-        right_pos = total_pos_arr - left_pos
+        probs_bin =_cal_probs(val[1])
+        entorpy_bin = _cal_entropy(probs_bin)
 
-        p_left,p_right = left_pos/left_count, right_pos/right_count
-        entropy = -((left_count/total_rows)*p_left* np.log(p_left) + (right_count/total_rows)*p_right * np.log(p_right))
-        print("\n sys_entropy",sys_entropy," curr_entropy",entropy)
-        ig = sys_entropy - entropy
+        ig = sys_entropy - entorpy_bin
 
-        if ig > best_ig: best_ig = ig
+        ig_and_bins.append((key,ig))
 
-    return (ig,key)
+        if ig > best_ig: 
+            best_ig = ig
+            print(f"----Best I.G---- {best_ig}")
+
+    # total_pos_arr = np.unique(targ,return_counts=True)[1][1]
+    # total_rows = targ.shape[0]
+    # #iterating through the dict values
+    # left_count = list(freq_count.items())[0][1][0]
+    # left_pos = list(freq_count.items())[0][1][1]
+    # best_ig = 0
+    # for key,val in dict(list(freq_count.items())[1:-1]).items():
+    #     left_count += val[0]
+    #     left_pos += val[1]
+    #     right_count = total_rows - left_count
+    #     right_pos = total_pos_arr - left_pos
+
+    #     p_left,p_right = left_pos/left_count, right_pos/right_count
+    #     entropy = -((left_count/total_rows)*p_left* np.log(p_left) + (right_count/total_rows)*p_right * np.log(p_right))
+    #     print("\n sys_entropy",sys_entropy," curr_entropy",entropy)
+    #     ig = sys_entropy - entropy
+
+    #     if ig > best_ig: best_ig = ig
+
+    return ig_and_bins
+    # return (ig,key)
+    
+def greedy_split(arr_obj:np.array, targ:np.array,sys_entropy:float):
+    # target column assessment:
+    num_rows = targ.shape[0]
+    targ_stats = np.unique(targ_col,return_counts=True)
+    targ_feats, num_classes,total_class_freq = targ_stats[0],len(targ_stats[0]), targ_stats[1]
+    count_classes_left = [0]*num_classes
+    sorted_index = np.argsort(arr_obj)
+
+    sorted_feat, sorted_targ = arr_obj[sorted_index], targ[sorted_index]
+    thresholds = []
+    highest_ig_mean,highest_ig = (),0
+    counter = 0
+    print(sorted_feat)
+    for i in range(len(arr_obj)-1):
+        matched_ind_val = np.where(targ_feats ==sorted_targ[i])[0][0]
+        count_classes_left[matched_ind_val] += 1
+
+        if sorted_feat[i] == sorted_feat[i+1]:
+            continue
+
+        mean =(sorted_feat[i] + sorted_feat[i+1])/2
+        left_entro = _cal_entropy(_cal_probs(np.array(count_classes_left)))
+        right_entro = _cal_entropy(_cal_probs(total_class_freq - np.array(count_classes_left)))
+
+        total_left = sum(count_classes_left)
+        total_right = num_rows -total_left
+        p_left,p_right = total_left/num_rows, total_right/num_rows
+        weighted_entro = _cal_weighted_entropy(np.array([p_left,p_right]),np.array([left_entro,right_entro]))
+
+        i_g = sys_entropy - weighted_entro
+        thresholds.append((mean,i_g))
+
+        if i_g > highest_ig: 
+            print(f"spotted highest entropy at {sorted_feat[i],sorted_feat[i+1]}")
+            highest_ig = i_g
+            highest_ig_mean = (highest_ig, mean)
+
+        counter += 1    
+    
+    print(counter)    
+    return highest_ig_mean
+
+
     
 
 def finding_best_splits(ftc:np.array):
@@ -244,6 +311,22 @@ def find_next_split_col(arr_obj:np.array)-> dict:
     
     return criteria
 
+# How Categorical Data Uses Extension ArraysThe pandas.Categorical type is one of the most common implementations of an Extension Array. Instead of forcing string objects into a slow, resource-heavy NumPy object array, pandas splits categorical columns into two distinct, memory-efficient NumPy arrays:Categories Array: A unique lookup table contaiing the distinct string labels (e.g., ['high', 'low', 'medium']).Codes Array: An array of small integers (e.g., [0, 1, 2, 0]) that map back to the indexes of the categories array.
+def find_cols_type(arr:np.array)->list:
+    type_list = []
+    for col in range(arr.shape[1]):
+        # print(type(arr[0,col]))
+        # kind_num = isinstance(arr[0,col], (int,np.int64))
+        try:
+            arr[0,col].astype(float)
+            kind_num = True
+        except ValueError:
+            kind_num = False
+            
+        type_list.append('numeric'if kind_num else 'categorical')
+    
+    return type_list
+
 
 if __name__ == "__main__":
     # test_arr = np.random.randint(10,59,30)
@@ -263,10 +346,16 @@ if __name__ == "__main__":
     targ_col = np.random.choice([0,1,2],size=30)
     num_cols = np.column_stack([np.random.randint(10,50,30),np.random.randint(20,40,30)])
     data = np.column_stack([cat_cols,num_cols,targ_col])
-    print(data)
+    # print(data)
 
     # print(find_next_split_col(data))
-    print(best_split_categorical(cat_cols[:,0],targ_col))
+    # print(best_split_categorical(cat_cols[:,0],targ_col))
+
+    # print("\n---Input col----\n")
+    # # print(data[:,2].astype(np.int64))
+    # print(greedy_split(data[:,2].astype(np.int64),data[:,-1].astype(np.int64),_cal_entropy(_cal_probs(data[:,-1]))))
+
+    print(find_cols_type(data))
 
 
 # wrie the function to do things dynamically, may be it will be better if you make a new file

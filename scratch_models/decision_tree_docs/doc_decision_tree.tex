@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{float}
 % \usepackage[utf-8]{inputenc}
 
 % Document
@@ -47,7 +48,7 @@ The approach for findng I.G differs based on the type of the data the targetted 
 These columns of data can be one hot encoded. Similar to the target column these feature columns are also supposed to have unique elements and counts associated to them. Then we perform \textbf{Binary Subset Split}. In this split as the name suggests, only two category is conisdered. Say one of the Category is $A$ then the other category becomes $~A$ or $U-A$. Then we calculate the \textbf{Weighted Entropy}. This is repeated for every Category presented in the feature column.
 
 \subsubsection{I.G for a Discrete nature column.}
-Let's assume a feature column with three distinct features in it (0,1,2) and target column with target vairables as (A,B,C). First we compute, the metrics such as counts of mapping such as counts of a feature varaible and target variable.
+Let's assume a feature column with three distinct features in it (0,1,2) after encoding from strings and target column with target vairables as (A,B,C). First we compute, the metrics such as counts of mapping such as counts of a feature varaible and target variable.
 
 \begin{align*}
     0_A \quad &\longrightarrow \quad 344 \\
@@ -66,10 +67,11 @@ we have $0$ and $0^{\complement}$, our goal is to find the Weighted entropy of a
 
 The probabilities are used as weights and the notations are tried to be summarized below:
 \begin{align*}
-    \text{weight 1 (Probability of 0 in feat col)} = P(0_i) \\
-    \text{ weight 2 (Probability of $0^{\complement}$ in feat col)} = P(0^{\complement}_i) \\
-    \text{Entropy of 0th component of binary split} = H(0_i) \\
-    \text{Entropy of 1th component of binary splilt} = H(0^{\complement}_i) 
+    n = \text{Number of Unique classes in target column} \\
+    P(0_i) = \text{weight 1 (Probability of 0 in feat col)}\\
+    P(0^{\complement}_i) = \text{ weight 2 (Probability of $0^{\complement}$ in feat col)}\\
+    H(0_i) = \text{Entropy of 0th component of binary split}\\
+    H(0^{\complement}_i) = \text{Entropy of 1th component of binary splilt} 
 \end{align*}
 
 Entropy of the binary splits:
@@ -81,6 +83,92 @@ We repeate this for the set ($1$ ,$1^{\complement}$) and ($2$, $2^{\complement}$
 
 
 \subsection{Continuos nature of Data}
-To find the splitting criteria, we divide the data in bins and try singling out one of the bin, which is able to point out the maximum information for that column. This apporach is also called \textbf{Histogram Binding}.
+To find the splitting criteria in a column of continous nature modern CART models use a combined approach of \textbf{Greedy Approach and Histogram Binning}. Let's look at them individually.
+
+\subsubsection{Greedy Approach}
+In Greedy Approach, we leave out no possible candidate for splitting, this is definitely a compute heavy approach. Lets imagine a continous feature columns and it's corresponding target column with three specific targets $A$,$B$ and $C$.
+
+\begin{table}[H]
+    \centering
+    \label{Tabular view of distribution}
+    \begin{tabular}{|c|c|}
+        \hline
+        Feat Col & Targ Col \\
+        \hline
+        21 & B \\
+        14 & C \\
+        42 & C \\
+        19 & A \\
+        36 & A \\
+        21 & B \\
+        14 & A \\
+        59 & B \\
+        68 & C \\
+        75 & C \\
+        \hline
+    \end{tabular}
+    \caption{Feat and Targ cols}
+\end{table}
+
+This apporach is supposed to work as, find the mean between every sorted unique elements in the feature columns and find the Information Gain for that mean and find the one with the Highest Information Gain and use it as the splitting criteria. 
+
+\begin{table}[H]
+    \centering
+    \label{Tabular view}
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Sorted Feats & Targ Col & Upper and Lower end\\
+        \hline
+        14 & A & --\\
+        14 & C & 14-19\\
+        19 & A & 19-21\\
+        21 & B & --\\
+        21 & B & 21-36\\
+        36 & A & 36-42\\
+        42 & C & 42-59\\
+        59 & B & 59-68\\
+        68 & C & 68-75\\
+        75 & C & Upper right end \\
+        \hline
+    \end{tabular}
+    \caption{Feat and Targ cols}
+\end{table}
+We obviously ignore the repeated values as they serve as the same bounding parameter while calculating the mean, but the associated value in the target column should be recorded for entropy calculation.
+
+\begin{itemize}
+    \item \textbf{Lopping} \newline
+    We run the loop $k-1$, where $k$ is the number of rows in the given data.
+    \item \textbf{Entropy Calculation} \newline
+    For every mean we look for the 
+    \begin{align*}
+         H_L &= \sum P(A_L) \log2(P(A_L)) + P(B_L) \log2(P(B_L)) + P(C_L) \log2(P(C_L)) \\
+         \text{and} \\
+         H_R &= \sum P(A_R) \log2(P(A_R)) + P(B_R) \log2(P(B_R)) + P(C_R) \log2(P(C_R)) \\
+    \end{align*}
+    where,
+    \begin{align*}
+    P(A_L) = \text{Porbability of A in left side of mean} \\
+    P(B_L) = \text{Porbability of B in left side of mean}\\
+    P(C_L) = \text{Porbability of C in left side of mean}\\
+    P(A_R) = \text{Porbability of A in right side of mean} \\
+    P(B_R) = \text{Porbability of B in right side of mean}\\
+    P(C_R) = \text{Porbability of C in right side of mean}\\
+    \end{align*}
+    \item Weighted Entropy \newline
+    \begin{align*}
+    H_w(X) &= \sum P(L) H(L) + P(R)H(R) 
+\end{align*}
+    where,
+    \begin{align*}
+    P(L) = \text{Porbability of a entity being on left of mean} \\
+    P(R) = \text{Porbability of a entity being on right of mean}\\
+    \end{align*}
+\end{itemize}
+
+
+
+\subsubsection{Histogram Binning}
+This is the more of compute friendly approach where, we divide the data in bins and try singling out one of the bin, which is able to point out the maximum information for that column, the bins is either averaged or one of the end is taken as the criteria. This apporach is also called \textbf{Histogram Binning}.
+
 
 \end{document}

@@ -18,3 +18,15 @@
 
 2026 Jun 22
 -Refactoring attempt, latex documentation incomplete, multi class computation attempt.  
+
+2026 Jun 24
+-Documented the split caluclation for discrete columns (binary splitting) and for continous calculation (greedy approach).
+
+2026 Jun 25
+-Working on fixing the probability calculation in refactoring (greedy split), same probability for each target class in traget column.
+
+2026 Jul 3
+-Fixed the probability calculation for greedy split and studying recursion apporach.
+
+2026 Jul 7
+-Figured out _cal_ig_col function is not working dynamically, need to change variable assesment local to global.
