@@ -165,6 +165,191 @@ We obviously ignore the repeated values as they serve as the same bounding param
     \end{align*}
 \end{itemize}
 
+\section{Testing column mapping dynamically}
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1 & 2 & 3 & 4 & 5 & 6 & 7\\
+            \hline
+            A & B & C & D & E & F & G & H\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 0}
+    \end{table}
+    \begin{align*}
+        \text{Gone}\\
+        3 \quad &\longrightarrow \quad D\\
+        depth = 0\\
+        \text{Actual}: None
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1 & 2 & 3 & 4 & 5 & 6 \\
+            \hline
+            A & B & C & E & F & G & H\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 1}
+    \end{table}
+    \text{1:B}
+        \begin{align*}
+        \text{Gone}\\
+        1 \quad &\longrightarrow \quad B\\
+        \text{Actual(1:B)}\\
+        depth = 1 \\
+        col_{prev} = 3 \quad col_{curr} = 1 \\
+        col_{prev} > col_{curr}\\
+        \text{}
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1 & 2 & 3 & 4 & 5\\
+            \hline
+            A & C & E & F & G & H\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 2}
+    \end{table}
+    \text{5:H}
+    \begin{align*}
+        \text{Gone}\\
+        5 \quad &\longrightarrow \quad H\\
+        \text{Actual(7:H)}\\
+        depth = 2 \\
+        col_{prev} = 1 \quad col_{curr} = 5 \\
+        col_{prev} < col_{curr}\\
+        \text{}
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1 & 2 & 3 & 4\\
+            \hline
+            A & C & E & F & G\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 3}
+    \end{table}
+    \text{2:E}
+    \begin{align*}
+        \text{Gone}\\
+        2 \quad &\longrightarrow \quad E\\
+        \text{Actual(4:E)}\\
+        depth = 3 \\
+        col_{prev} = 5 \quad col_{curr} = 4 \\
+        col_{prev} > col_{curr}\\
+        \text{}
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1 & 2 & 3\\
+            \hline
+            A & C & F & G\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 3}
+    \end{table}
+    \text{0:A}
+    \begin{align*}
+        \text{Gone}\\
+        0 \quad &\longrightarrow \quad A\\
+        \text{Actual(0:A)}\\
+        depth = 4 \\
+        col_{prev} = 4 \quad col_{curr} = 0 \\
+        col_{prev} > col_{curr}\\
+        \text{}
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1 & 2\\
+            \hline
+            C & F & G\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 4}
+    \end{table}
+    \text{1:F}
+    \begin{align*}
+        \text{Gone}\\
+        1 \quad &\longrightarrow \quad F\\
+        \text{Actual(5:F)}\\
+        depth = 5 \\
+        col_{prev} = 0 \quad col_{curr} = 5 \\
+        col_{prev} < col_{curr}\\
+        \text{}
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 & 1\\
+            \hline
+            C & G\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 5}
+    \end{table}
+    \text{0:C}
+    \begin{align*}
+        \text{Gone}\\
+        0 \quad &\longrightarrow \quad C\\
+        \text{Actual(2:C)}\\
+        depth = 6 \\
+        col_{prev} = 5 \quad col_{curr} = 0 \\
+        col_{prev} < col_{curr}\\
+        \text{}
+    \end{align*}
+\noindent\rule{\linewidth}{0.4pt}
+
+
+    \begin{table}[H]
+        \centering
+        \label{Tabular view of distribution}
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            0 \\
+            \hline
+            G\\
+            \hline
+        \end{tabular}
+        \caption{primary state depth 6}
+    \end{table}
+    % \text{1:F}
+
+    iter 0 
+    [3]
+    iter 1 []
 
 
 \subsubsection{Histogram Binning}

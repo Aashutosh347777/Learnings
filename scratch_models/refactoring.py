@@ -8,11 +8,14 @@ num_cols:int=0
 num_classes:int=0
 sys_entro = 0
 type_list = []
+index_cols_data = []
 targ_feats = None
 max_depth = 0
 min_purity = 0
 left_set = None
 right_set = None
+
+column_gone:str = None
 
 tree_formation = {}
 
@@ -54,11 +57,13 @@ def manage_data(dataset:np.array,params:dict)-> None:
     targ_col: Separated target column.
     feat_cols: Separated feature columns.
     """
-    global targ_col,feat_cols,num_rows,num_cols,max_depth
+    global targ_col,feat_cols,num_rows,num_cols,max_depth,index_cols_data
 
     # dataset dimesion and allocation
     num_rows,num_cols = dataset.shape
     feat_cols,targ_col = dataset[:,:-1],dataset[:,-1]
+    
+    index_cols_data = [str(i) for i in range(feat_cols.shape[1])]
 
     # intializing parameters
     max_depth = params['max_depth']
@@ -136,7 +141,9 @@ def _sys_entropy(targ_col:np.array,is_of=False):
     """
     global tree_formation
     cur_sys_entro = _cal_entropy(_cal_probs(targ_col))
-    tree_formation['targ_col'] = cur_sys_entro
+    breakpoint()
+    if is_of == True:
+        tree_formation['targ_col'] = cur_sys_entro
     return cur_sys_entro
 
 
@@ -150,7 +157,30 @@ def _cal_weighted_entropy(probs:np.array, entropies:np.array):
     """
     return sum(probs * entropies)
 
-def _cal_ig_col(feat_cols:np.array,targ_col:np.array)-> float:
+def is_col_num_correct(a:str,b:str):
+    """
+    Find out if the assigned column number is correct or not
+    Parameters:
+    a: String column index which was picked before.
+    b: String column index which was picked later.
+
+    Returns:
+    ----
+    """
+    int_a = int(a)
+    int_b = int(b)
+    
+    if int_a==int_b:
+        int_b = int_a + 1
+
+    elif int_a > int_b:
+        c = int_a -int_b
+    
+    elif int_b > int_a:
+        c = int_a + int_b
+    pass
+
+def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
     """
     Calculate weighted entopy for colummns based on the data type categorical or numerical.
 
@@ -162,11 +192,15 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array)-> float:
     Returns:
     col_ig: Information gained of the feature column.
     """
-    global num_rows,num_classes,sys_entro,targ_feats,total_class_freq
+    global total_class_freq,num_classes,column_gone,index_cols_data
+    num_rows,num_cols = feat_cols.shape
+    #  =_cal_probs(targ_col,return_metrics=True)[2:]
+    # num_classes = len(total_class_freq)
     mapping_splits = {}
-    for col_num in range(num_cols-1):
-        col_dtype = type_list[col_num]
-        cur_feat_col = feat_cols[:,col_num]
+    breakpoint()
+    for col_num in index_cols_data:
+        col_dtype = type_list[int(col_num)]
+        cur_feat_col = feat_cols[:,int(col_num)]
         # differnetiate the column type.
         if col_dtype == "categorical":
             probs_col,uniq_elements,freq_count=_cal_probs(cur_feat_col,return_metrics=True)
@@ -201,6 +235,7 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array)-> float:
                     highest_ig_split =(uniq_elements[i],highest_ig)
 
             mapping_splits[str(col_num)] = highest_ig_split
+            breakpoint()
         else:
             # for now assuming the else block handles numerical continous columns
             # Greedy split
@@ -243,7 +278,9 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array)-> float:
                 
             # return highest_ig_mean
             mapping_splits[str(col_num)] = highest_ig_mean
-        
+            breakpoint()
+    mapping_splits = dict(sorted(mapping_splits.items(),key=lambda item:item[1][1],reverse=True))
+    column_gone = list(mapping_splits.keys())[0]
     return mapping_splits
 
 
@@ -269,15 +306,17 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,cur_sys_entro = N
     # curr_depth = 0
 
     if cur_sys_entro == None:
-        cur_sys_entro = _sys_entropy(targ_col)
+        cur_sys_entro = _sys_entropy(targ_col,is_of=True)
 
     if abs(cur_sys_entro) < 1e-9:
         return tree_formation
     
 
-    split_dict = dict(sorted(_cal_ig_col(feat_cols_in,targ_col_in).items(),key=lambda item:item[1][1],reverse=True))
+    # split_dict = dict(sorted(_cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro).items(),key=lambda item:item[1][1],reverse=True))
+    split_dict = _cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro) 
     breakpoint()
     col_num, col_criteria = (list(split_dict.items())[0][0],list(split_dict.items())[0][1][0])
+    index_cols_data.pop(index_cols_data.index(col_num))
 
     col_dtype = type_list[int(col_num)]
 

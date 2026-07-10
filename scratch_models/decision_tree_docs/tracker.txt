@@ -30,3 +30,7 @@
 
 2026 Jul 7
 -Figured out _cal_ig_col function is not working dynamically, need to change variable assesment local to global.
+
+2026 Jul 9
+-Wrong column number mapping in while returning mapping_splits in _cal_ig_col, the column number(col_num is a int taken out from range(num_cols), but when finding the col type for finding which kind of evaluation to run in find_best_split(split_dict and col_dtype), we're getting wrong col number.)
+-tree_formation dictionary being overwritten because of the same col_num being passed as key.
