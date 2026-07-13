@@ -15,7 +15,7 @@ min_purity = 0
 left_set = None
 right_set = None
 
-column_gone:str = None
+columns_gone:list = []
 
 tree_formation = {}
 
@@ -192,15 +192,15 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
     Returns:
     col_ig: Information gained of the feature column.
     """
-    global total_class_freq,num_classes,column_gone,index_cols_data
+    global total_class_freq,num_classes,columns_gone,index_cols_data,index_cols_data
     num_rows,num_cols = feat_cols.shape
     #  =_cal_probs(targ_col,return_metrics=True)[2:]
     # num_classes = len(total_class_freq)
     mapping_splits = {}
     breakpoint()
-    for col_num in index_cols_data:
-        col_dtype = type_list[int(col_num)]
-        cur_feat_col = feat_cols[:,int(col_num)]
+    for col_num in range(len(index_cols_data)):
+        col_dtype = type_list[col_num]
+        cur_feat_col = feat_cols[:,col_num]
         # differnetiate the column type.
         if col_dtype == "categorical":
             probs_col,uniq_elements,freq_count=_cal_probs(cur_feat_col,return_metrics=True)
@@ -232,9 +232,9 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
                 if curr_ig > highest_ig: 
                     highest_ig = curr_ig    
                     # print(sys_entro,highest_ig)
-                    highest_ig_split =(uniq_elements[i],highest_ig)
+                    highest_ig_split =(uniq_elements[i],highest_ig,col_num)
 
-            mapping_splits[str(col_num)] = highest_ig_split
+            mapping_splits[str(index_cols_data[col_num])] = highest_ig_split
             breakpoint()
         else:
             # for now assuming the else block handles numerical continous columns
@@ -274,13 +274,13 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
                     # print(f"spotted highest entropy at {sorted_feat[i],sorted_feat[i+1]}")
                     highest_ig = i_g
                     # print(sys_entro,weighted_entro)
-                    highest_ig_mean = (mean,highest_ig)
+                    highest_ig_mean = (mean,highest_ig,col_num)
                 
             # return highest_ig_mean
-            mapping_splits[str(col_num)] = highest_ig_mean
+            mapping_splits[str(index_cols_data[col_num])] = highest_ig_mean
             breakpoint()
     mapping_splits = dict(sorted(mapping_splits.items(),key=lambda item:item[1][1],reverse=True))
-    column_gone = list(mapping_splits.keys())[0]
+    columns_gone.append(int(list(mapping_splits.keys())[0]))
     return mapping_splits
 
 
@@ -308,28 +308,29 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,cur_sys_entro = N
     if cur_sys_entro == None:
         cur_sys_entro = _sys_entropy(targ_col,is_of=True)
 
-    if abs(cur_sys_entro) < 1e-9:
+    if abs(cur_sys_entro) < 1e-9 or feat_cols_in.shape[1] == 0:
+        tree_formation[f'leaf_node_{depth}'] = targ_col_in
         return tree_formation
     
 
     # split_dict = dict(sorted(_cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro).items(),key=lambda item:item[1][1],reverse=True))
     split_dict = _cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro) 
     breakpoint()
-    col_num, col_criteria = (list(split_dict.items())[0][0],list(split_dict.items())[0][1][0])
+    col_num, col_criteria,act_col = (list(split_dict.items())[0][0],list(split_dict.items())[0][1][0],list(split_dict.items())[0][1][2])
     index_cols_data.pop(index_cols_data.index(col_num))
 
     col_dtype = type_list[int(col_num)]
 
     if col_dtype == 'numeric':
-        left_split_crit = (feat_cols_in[:,int(col_num)]).astype(np.float64) <= col_criteria
+        left_split_crit = (feat_cols_in[:,act_col]).astype(np.float64) <= col_criteria
         right_split_crit = ~left_split_crit
 
     else:
-        left_split_crit = feat_cols_in[:,int(col_num)] == col_criteria
+        left_split_crit = feat_cols_in[:,act_col] == col_criteria
         right_split_crit = ~left_split_crit
     
         
-    cur_feat_cols = np.delete(feat_cols_in,int(col_num),axis=1)
+    cur_feat_cols = np.delete(feat_cols_in,act_col,axis=1)
     num_cols -= 1
     left_set_feats, right_set_feats = cur_feat_cols[left_split_crit], cur_feat_cols[right_split_crit]
     left_set_targ, right_set_targ = targ_col_in[left_split_crit], targ_col_in[right_split_crit]

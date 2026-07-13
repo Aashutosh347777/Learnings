@@ -34,3 +34,8 @@
 2026 Jul 9
 -Wrong column number mapping in while returning mapping_splits in _cal_ig_col, the column number(col_num is a int taken out from range(num_cols), but when finding the col type for finding which kind of evaluation to run in find_best_split(split_dict and col_dtype), we're getting wrong col number.)
 -tree_formation dictionary being overwritten because of the same col_num being passed as key.
+
+2026 Jul 13
+-Reached leaf node with correct data passage
+-Sequence of column pop needed for the upward travel recursion, but not being found, make it dynamic.
+-Proper Leafing needed(When a single column is reached nothing is being passed as feat_col_in)
