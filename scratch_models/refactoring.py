@@ -141,7 +141,6 @@ def _sys_entropy(targ_col:np.array,is_of=False):
     """
     global tree_formation
     cur_sys_entro = _cal_entropy(_cal_probs(targ_col))
-    breakpoint()
     if is_of == True:
         tree_formation['targ_col'] = cur_sys_entro
     return cur_sys_entro
@@ -157,55 +156,31 @@ def _cal_weighted_entropy(probs:np.array, entropies:np.array):
     """
     return sum(probs * entropies)
 
-def is_col_num_correct(a:str,b:str):
-    """
-    Find out if the assigned column number is correct or not
-    Parameters:
-    a: String column index which was picked before.
-    b: String column index which was picked later.
-
-    Returns:
-    ----
-    """
-    int_a = int(a)
-    int_b = int(b)
-    
-    if int_a==int_b:
-        int_b = int_a + 1
-
-    elif int_a > int_b:
-        c = int_a -int_b
-    
-    elif int_b > int_a:
-        c = int_a + int_b
-    pass
-
-def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
+def _cal_ig_col(feat_cols_in:np.array,targ_col_in:np.array,sys_entro:float,index_mapping:list)-> float:
     """
     Calculate weighted entopy for colummns based on the data type categorical or numerical.
 
     Parameters:
-    feat_cols: Column whoose Infromation gain is to be calculate.
-    targ_col: Target column of the set.
+    feat_cols_in: Column whoose Infromation gain is to be calculate.
+    targ_col_in: Target column of the set.
     sys_entro: calculated system entropy.
 
     Returns:
     col_ig: Information gained of the feature column.
     """
-    global total_class_freq,num_classes,columns_gone,index_cols_data,index_cols_data
-    num_rows,num_cols = feat_cols.shape
-    #  =_cal_probs(targ_col,return_metrics=True)[2:]
+    global total_class_freq,num_classes,columns_gone
+    num_rows,num_cols = feat_cols_in.shape
+    #  =_cal_probs(targ_col_in,return_metrics=True)[2:]
     # num_classes = len(total_class_freq)
     mapping_splits = {}
-    breakpoint()
-    for col_num in range(len(index_cols_data)):
+    for col_num in range(len(index_mapping)):
         col_dtype = type_list[col_num]
-        cur_feat_col = feat_cols[:,col_num]
+        cur_feat_col = feat_cols_in[:,col_num]
         # differnetiate the column type.
         if col_dtype == "categorical":
             probs_col,uniq_elements,freq_count=_cal_probs(cur_feat_col,return_metrics=True)
             sum_probs = sum(probs_col)
-            highest_ig_split,highest_ig = (),0
+            highest_ig_split,highest_ig = (),-1
 
 
             for i in range(len(uniq_elements)):
@@ -217,7 +192,7 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
                 #masking for filtering only the current element
                 mask = cur_feat_col==cur_ele
                 feat_col_cur_ele, feat_col_not_cur_ele = cur_feat_col[mask],cur_feat_col[~mask]
-                correspondent_vals_cur_ele, correspondent_vals_not_cur_ele = targ_col[mask], targ_col[~mask]
+                correspondent_vals_cur_ele, correspondent_vals_not_cur_ele = targ_col_in[mask], targ_col_in[~mask]
 
                 # calculating the probabilities
                 proba_curr_ele,proba_not_cur_ele = _cal_probs(correspondent_vals_cur_ele),_cal_probs(correspondent_vals_not_cur_ele)
@@ -234,18 +209,17 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
                     # print(sys_entro,highest_ig)
                     highest_ig_split =(uniq_elements[i],highest_ig,col_num)
 
-            mapping_splits[str(index_cols_data[col_num])] = highest_ig_split
-            breakpoint()
+            mapping_splits[str(index_mapping[col_num])] = highest_ig_split
         else:
             # for now assuming the else block handles numerical continous columns
             # Greedy split
             cur_feat_col = cur_feat_col.astype(float)
             count_classes_left = [0]*num_classes
             sorted_index = np.argsort(cur_feat_col)
-            # print(targ_col)
-            sorted_feat, sorted_targ = cur_feat_col[sorted_index], targ_col[sorted_index]
+            # print(targ_col_in)
+            sorted_feat, sorted_targ = cur_feat_col[sorted_index], targ_col_in[sorted_index]
             thresholds = []
-            highest_ig_mean,highest_ig = (),0
+            highest_ig_mean,highest_ig = (),-1
 
             for i in range(len(cur_feat_col)-1):
                 # print(targ_feats,sorted_targ[i])
@@ -275,50 +249,69 @@ def _cal_ig_col(feat_cols:np.array,targ_col:np.array,sys_entro:float)-> float:
                     highest_ig = i_g
                     # print(sys_entro,weighted_entro)
                     highest_ig_mean = (mean,highest_ig,col_num)
+                    breakpoint()
                 
             # return highest_ig_mean
-            mapping_splits[str(index_cols_data[col_num])] = highest_ig_mean
-            breakpoint()
+            mapping_splits[str(index_mapping[col_num])] = highest_ig_mean
     mapping_splits = dict(sorted(mapping_splits.items(),key=lambda item:item[1][1],reverse=True))
-    columns_gone.append(int(list(mapping_splits.keys())[0]))
+    # columns_gone.append(int(list(mapping_splits.keys())[0]))
+    breakpoint()
+
     return mapping_splits
 
 
 # support functions for calculating ig for numerical column
 # find best split/ using histogram binding
-def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,cur_sys_entro = None, depth = 0)->float:
+def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,mapping_list:list = None,cur_sys_entro = None,depth = 0)->float:
     """
     Find the best splitting criteria for a numerical column.
 
     Parameters:
-    feat_cols, targ_col from cal_ig_col
+    feat_cols_in, targ_col_in from cal_ig_col
     col_dtype : Data type of the column
 
     Reuturns:
     split_point: Best splitting criteria for the column.
     """
-    # print(
-        # f"Depth={depth}, "
-    #     f"Samples={len(targ_col)}, "
-    #     f"Entropy={cur_sys_entro:.3f}"
-    # )
     global max_depth,num_cols,tree_formation
     # curr_depth = 0
 
     if cur_sys_entro == None:
         cur_sys_entro = _sys_entropy(targ_col,is_of=True)
 
-    if abs(cur_sys_entro) < 1e-9 or feat_cols_in.shape[1] == 0:
-        tree_formation[f'leaf_node_{depth}'] = targ_col_in
-        return tree_formation
+    if mapping_list == None:
+        mapping_list = index_cols_data.copy()
+
+    if abs(cur_sys_entro) < 1e-9 or len(feat_cols_in) == 1:
+        _,uniq_ele,freq_count = _cal_probs(targ_col_in,return_metrics=True)
+        highest_prob_class = uniq_ele[np.where(freq_count,np.max(freq_count))]
+        # tree_formation[f'leaf_node_{depth}'] = highest_prob_class
+        return {
+            'leaf': True,
+            'class': highest_prob_class
+        }
+        
     
 
     # split_dict = dict(sorted(_cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro).items(),key=lambda item:item[1][1],reverse=True))
-    split_dict = _cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro) 
+    split_dict = _cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro,mapping_list)
+    is_last = True if len(split_dict) == 1 else False 
     breakpoint()
-    col_num, col_criteria,act_col = (list(split_dict.items())[0][0],list(split_dict.items())[0][1][0],list(split_dict.items())[0][1][2])
-    index_cols_data.pop(index_cols_data.index(col_num))
+    list_of_mapping_dict = list(split_dict.items())
+    col_num, col_criteria,act_col,ig_col = (list_of_mapping_dict[0][0],list_of_mapping_dict[0][1][0],list_of_mapping_dict[0][1][2],list_of_mapping_dict[0][1][1])
 
+    #avoiding infinte recusion
+    if ig_col < 1e-9:
+        # return the tree with some parameter to set the entropy as 0 and end the loop.
+        _,uniq_ele,freq_count = _cal_probs(targ_col_in,return_metrics=True)
+        highest_prob_class = uniq_ele[np.where(freq_count,np.max(freq_count))]
+        # tree_formation[f'leaf_node_{depth}'] = highest_prob_class
+        return {
+            'leaf': True,
+            'class': highest_prob_class
+        }
+        
+    
     col_dtype = type_list[int(col_num)]
 
     if col_dtype == 'numeric':
@@ -329,19 +322,29 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,cur_sys_entro = N
         left_split_crit = feat_cols_in[:,act_col] == col_criteria
         right_split_crit = ~left_split_crit
     
-        
-    cur_feat_cols = np.delete(feat_cols_in,act_col,axis=1)
+    cur_feat_cols = feat_cols_in if is_last else np.delete(feat_cols_in,act_col,axis=1)
+
     num_cols -= 1
     left_set_feats, right_set_feats = cur_feat_cols[left_split_crit], cur_feat_cols[right_split_crit]
     left_set_targ, right_set_targ = targ_col_in[left_split_crit], targ_col_in[right_split_crit]
     left_set_entro,right_set_entro = _sys_entropy(left_set_targ),_sys_entropy(right_set_targ)
-    tree_formation[col_num] = col_criteria
+    
+    #building trees
+    index_next_call = mapping_list if is_last else mapping_list[:mapping_list.index(col_num)] + mapping_list[mapping_list.index(col_num) +1:]
+    left_tree = find_best_split(left_set_feats,left_set_targ,index_next_call,left_set_entro,depth+1)
+    right_tree = find_best_split(right_set_feats,right_set_targ,index_next_call,right_set_entro,depth+1)
+
+    sub_tree = {
+        'column': col_num,
+        'criteria': col_criteria,
+        'left_child' : left_tree,
+        'right_child' : right_tree,
+        'depth': depth
+    }
+
     breakpoint()
-    # left_best_split = 
-    # prin(left_best_split)
-    # right_best_split = 
-    # print(right_best_split)
-    return(find_best_split(left_set_feats,left_set_targ,left_set_entro,depth+1),find_best_split(right_set_feats,right_set_targ,right_set_entro,depth+1))
+
+    return sub_tree
 
     # max_depth -=1
 

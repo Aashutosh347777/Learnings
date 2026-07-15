@@ -39,3 +39,10 @@
 -Reached leaf node with correct data passage
 -Sequence of column pop needed for the upward travel recursion, but not being found, make it dynamic.
 -Proper Leafing needed(When a single column is reached nothing is being passed as feat_col_in)
+
+2026 Jul 14
+-Removing the return parameter from a global dictionary object to a nested dictionary object.
+-Could be possible issues in the mean selection of the numerical columns, splits very one sidedly.
+
+2026 Jul 15
+-Left side tree formation complete, issue in column and column type mapping on the right side.
