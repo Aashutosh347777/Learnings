@@ -1,6 +1,8 @@
 # Refactoring into functions
-
+import pickle
+from pathlib import Path
 import numpy as np
+import json
 
 # Global vars, constructor assignment
 num_rows:int=0
@@ -249,13 +251,13 @@ def _cal_ig_col(feat_cols_in:np.array,targ_col_in:np.array,sys_entro:float,index
                     highest_ig = i_g
                     # print(sys_entro,weighted_entro)
                     highest_ig_mean = (mean,highest_ig,col_num)
-                    breakpoint()
+                    # breakpoint()
                 
             # return highest_ig_mean
             mapping_splits[str(index_mapping[col_num])] = highest_ig_mean
     mapping_splits = dict(sorted(mapping_splits.items(),key=lambda item:item[1][1],reverse=True))
     # columns_gone.append(int(list(mapping_splits.keys())[0]))
-    breakpoint()
+    # breakpoint()
 
     return mapping_splits
 
@@ -284,7 +286,7 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,mapping_list:list
 
     if abs(cur_sys_entro) < 1e-9 or len(feat_cols_in) == 1:
         _,uniq_ele,freq_count = _cal_probs(targ_col_in,return_metrics=True)
-        highest_prob_class = uniq_ele[np.where(freq_count,np.max(freq_count))]
+        highest_prob_class = uniq_ele[np.where(freq_count==np.max(freq_count))]
         # tree_formation[f'leaf_node_{depth}'] = highest_prob_class
         return {
             'leaf': True,
@@ -296,7 +298,7 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,mapping_list:list
     # split_dict = dict(sorted(_cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro).items(),key=lambda item:item[1][1],reverse=True))
     split_dict = _cal_ig_col(feat_cols_in,targ_col_in,cur_sys_entro,mapping_list)
     is_last = True if len(split_dict) == 1 else False 
-    breakpoint()
+    # breakpoint()
     list_of_mapping_dict = list(split_dict.items())
     col_num, col_criteria,act_col,ig_col = (list_of_mapping_dict[0][0],list_of_mapping_dict[0][1][0],list_of_mapping_dict[0][1][2],list_of_mapping_dict[0][1][1])
 
@@ -304,7 +306,7 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,mapping_list:list
     if ig_col < 1e-9:
         # return the tree with some parameter to set the entropy as 0 and end the loop.
         _,uniq_ele,freq_count = _cal_probs(targ_col_in,return_metrics=True)
-        highest_prob_class = uniq_ele[np.where(freq_count,np.max(freq_count))]
+        highest_prob_class = uniq_ele[np.where(freq_count==np.max(freq_count))]
         # tree_formation[f'leaf_node_{depth}'] = highest_prob_class
         return {
             'leaf': True,
@@ -315,7 +317,8 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,mapping_list:list
     col_dtype = type_list[int(col_num)]
 
     if col_dtype == 'numeric':
-        left_split_crit = (feat_cols_in[:,act_col]).astype(np.float64) <= col_criteria
+        #changed the both comparision entities to same data type.
+        left_split_crit = (feat_cols_in[:,act_col]).astype(np.float64) <= col_criteria.astype(np.float64)
         right_split_crit = ~left_split_crit
 
     else:
@@ -342,7 +345,7 @@ def find_best_split(feat_cols_in:np.array,targ_col_in:np.array,mapping_list:list
         'depth': depth
     }
 
-    breakpoint()
+    # breakpoint()
 
     return sub_tree
 
@@ -398,6 +401,12 @@ if __name__=="__main__":
 
     # out1 = find_best_split(data[:,0],data[:,-1],out, col_dtype="U<21")
     print(out)
+
+    path_pkl = 'map.pkl'
+    mapping_path = Path(path_pkl)
+    if not mapping_path.exists():
+        with open(path_pkl,'wb') as f:
+            pickle.dump(out,f)
 
     # # debugging error in depth 3, where input is
     # problem_depth_in = np.array(
