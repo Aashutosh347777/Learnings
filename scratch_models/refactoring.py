@@ -234,8 +234,8 @@ def _cal_ig_col(feat_cols_in:np.array,targ_col_in:np.array,sys_entro:float,index
 
                 mean =(sorted_feat[i] + sorted_feat[i+1])/2
 
-                left_entro = _cal_entropy(_cal_probs(np.array(count_classes_left)))
-                right_entro = _cal_entropy(_cal_probs(total_class_freq - np.array(count_classes_left)))
+                left_entro = _cal_entropy(_cal_probs(np.array(count_classes_left),is_num_cols=True))
+                right_entro = _cal_entropy(_cal_probs(total_class_freq - np.array(count_classes_left),is_num_cols=True))
                 
             
                 total_left = sum(count_classes_left)
@@ -394,9 +394,25 @@ if __name__=="__main__":
         ['C', 'D', '48', '28', '2']]
     )
 
-    print(data)
+    data1 = np.array(
+      [['c', '35', 'e', '62'],
+       ['b', '13', 'd', '68'],
+       ['b', '21', 'd', '72'],
+       ['c', '12', 'e', '79'],
+       ['b', '13', 'e', '60'],
+       ['c', '23', 'f', '90'],
+       ['c', '43', 'd', '77'],
+       ['a', '39', 'e', '74'],
+       ['c', '29', 'd', '60'],
+       ['c', '34', 'e', '88'],
+       ['a', '19', 'f', '91'],
+       ['c', '45', 'e', '66'],
+       ['a', '19', 'e', '65'],
+       ['a', '20', 'd', '93'],
+       ['c', '35', 'e', '96']])
+    print(data1)
 
-    out = decision_tree_classify(data,params={'max_depth':3})
+    out = decision_tree_classify(data1,params={'max_depth':3})
     # sorted_out = dict(sorted(out.items(),key=lambda item:item[1][1],reverse=True))
 
     # out1 = find_best_split(data[:,0],data[:,-1],out, col_dtype="U<21")
@@ -422,3 +438,51 @@ if __name__=="__main__":
     # # give no splitting criteria/ dictionary
     # split_dict = dict(sorted(_cal_ig_col(problem_depth_in,problem_depth_out).items(),key=lambda item:item[1][1],reverse=True))
     # print(split_dict)
+
+    # visualizing the tree formed
+    # from graphviz import Digraph
+
+    # def render_graphviz_tree(tree):
+    #     dot = Digraph("DecisionTree")
+    #     dot.attr("node", shape="box", style="filled")
+
+    #     counter = [0]
+
+    #     def add_node(node, parent=None, edge_label=""):
+    #         node_id = f"node_{counter[0]}"
+    #         counter[0] += 1
+
+    #         # Leaf node
+    #         if node.get("leaf", False):
+    #             dot.node(
+    #                 node_id,
+    #                 f"Class = {node['class']}",
+    #                 fillcolor="lightgreen"
+    #             )
+    #         else:
+    #             label = (
+    #                 f"Feature {node['column']}\n"
+    #                 f"<= {node['criteria']}"
+    #             )
+
+    #             dot.node(
+    #                 node_id,
+    #                 label,
+    #                 fillcolor="lightblue"
+    #             )
+
+    #         if parent is not None:
+    #             dot.edge(parent, node_id, label=edge_label)
+
+    #         if not node.get("leaf", False):
+    #             add_node(node["left_child"], node_id, "True")
+    #             add_node(node["right_child"], node_id, "False")
+
+    #     add_node(tree)
+
+    #     return dot
+
+    # # View tree in an interactive notebook or save to a file
+    # dot_tree = render_graphviz_tree(out)
+    # dot_tree.render('decision_tree_output', format='png', cleanup=True)
+
